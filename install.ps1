@@ -103,6 +103,21 @@ if (-not $SkipTheme) {
     Write-Skip "Theme"
 }
 
+# ── Fastfetch Config ──
+Write-Step "Installing fastfetch config"
+$ffDir = "$HOME\.config\fastfetch"
+if (-not (Test-Path $ffDir)) { New-Item -ItemType Directory -Path $ffDir -Force | Out-Null }
+
+$ffConfigSource = if ($scriptDir) { Join-Path $scriptDir "fastfetch\config.jsonc" } else { "" }
+if ($ffConfigSource -and (Test-Path $ffConfigSource)) {
+    Copy-Item (Join-Path $scriptDir "fastfetch\config.jsonc") "$ffDir\config.jsonc" -Force
+    Copy-Item (Join-Path $scriptDir "fastfetch\logo.txt") "$ffDir\logo.txt" -Force
+} else {
+    Invoke-WebRequest -Uri "$repoUrl/fastfetch/config.jsonc" -OutFile "$ffDir\config.jsonc"
+    Invoke-WebRequest -Uri "$repoUrl/fastfetch/logo.txt" -OutFile "$ffDir\logo.txt"
+}
+Write-Ok "Fastfetch config installed to $ffDir"
+
 # ── Profile ──
 if (-not $SkipProfile) {
     Write-Step "Installing PowerShell profile"
