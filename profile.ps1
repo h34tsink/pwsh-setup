@@ -8,8 +8,6 @@ oh-my-posh init pwsh --config "$HOME\.poshthemes\custom-blue.omp.json" | Invoke-
 Set-PSReadLineOption -PredictionSource HistoryAndPlugin
 Set-PSReadLineOption -PredictionViewStyle ListView
 Set-PSReadLineOption -MaximumHistoryCount 10000
-Set-PSReadLineOption -HistoryNoDuplicates:$true
-Set-PSReadLineOption -HistorySearchCursorMovesToEnd:$true
 Set-PSReadLineOption -BellStyle None
 Set-PSReadLineOption -Colors @{
     Command            = '#87CEEB'
