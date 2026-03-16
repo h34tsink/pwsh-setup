@@ -46,7 +46,7 @@ if (-not $SkipScoop) {
     Write-Ok "Buckets ready"
 
     Write-Step "Installing CLI tools via Scoop"
-    $tools = @('bat', 'eza', 'fd', 'ripgrep', 'delta', 'btop', 'gsudo', 'lazygit', 'fzf', 'zoxide', 'gh')
+    $tools = @('bat', 'eza', 'fd', 'ripgrep', 'delta', 'btop', 'gsudo', 'lazygit', 'fzf', 'zoxide', 'gh', 'fastfetch')
     foreach ($tool in $tools) {
         if (Get-Command $tool -ErrorAction SilentlyContinue) {
             Write-Ok "$tool already installed"
@@ -170,4 +170,5 @@ Write-Host "    lt      - eza tree view" -ForegroundColor White
 Write-Host "    cat     - bat with syntax highlighting" -ForegroundColor White
 Write-Host "    z <dir> - zoxide smart cd" -ForegroundColor White
 Write-Host "    sudo    - gsudo elevate" -ForegroundColor White
+Write-Host "    fastfetch - system info on startup" -ForegroundColor White
 Write-Host ""

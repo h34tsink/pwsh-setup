@@ -1,6 +1,9 @@
 # PowerShell Profile - Terminal Enhancement Suite
 # Source: https://github.com/h34tsink/pwsh-setup
 
+# --- Fastfetch ---
+if (Get-Command fastfetch -ErrorAction SilentlyContinue) { fastfetch }
+
 # --- Oh My Posh ---
 oh-my-posh init pwsh --config "$HOME\.poshthemes\custom-blue.omp.json" | Invoke-Expression
 
