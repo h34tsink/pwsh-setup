@@ -20,6 +20,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoUrl = "https://raw.githubusercontent.com/h34tsink/pwsh-setup/main"
+$scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { "" }
 
 function Write-Step { param($msg) Write-Host "`n>> $msg" -ForegroundColor Cyan }
 function Write-Ok { param($msg) Write-Host "   $msg" -ForegroundColor Green }
@@ -91,8 +92,8 @@ if (-not $SkipTheme) {
     $themesDir = "$HOME\.poshthemes"
     if (-not (Test-Path $themesDir)) { New-Item -ItemType Directory -Path $themesDir -Force | Out-Null }
 
-    $themeSource = Join-Path $PSScriptRoot "custom-blue.omp.json"
-    if (Test-Path $themeSource) {
+    $themeSource = if ($scriptDir) { Join-Path $scriptDir "custom-blue.omp.json" } else { "" }
+    if ($themeSource -and (Test-Path $themeSource)) {
         Copy-Item $themeSource "$themesDir\custom-blue.omp.json" -Force
     } else {
         Invoke-WebRequest -Uri "$repoUrl/custom-blue.omp.json" -OutFile "$themesDir\custom-blue.omp.json"
@@ -115,8 +116,8 @@ if (-not $SkipProfile) {
         Write-Ok "Existing profile backed up to $backup"
     }
 
-    $profileSource = Join-Path $PSScriptRoot "profile.ps1"
-    if (Test-Path $profileSource) {
+    $profileSource = if ($scriptDir) { Join-Path $scriptDir "profile.ps1" } else { "" }
+    if ($profileSource -and (Test-Path $profileSource)) {
         Copy-Item $profileSource $PROFILE -Force
     } else {
         Invoke-WebRequest -Uri "$repoUrl/profile.ps1" -OutFile $PROFILE
@@ -128,8 +129,8 @@ if (-not $SkipProfile) {
 
 # ── Git config for delta ──
 Write-Step "Configuring git to use delta"
-$deltaConfig = Join-Path $PSScriptRoot ".gitconfig-delta"
-if (-not (Test-Path $deltaConfig)) {
+$deltaConfig = if ($scriptDir) { Join-Path $scriptDir ".gitconfig-delta" } else { "" }
+if (-not $deltaConfig -or -not (Test-Path $deltaConfig)) {
     $deltaConfig = "$env:TEMP\.gitconfig-delta"
     Invoke-WebRequest -Uri "$repoUrl/.gitconfig-delta" -OutFile $deltaConfig
 }
