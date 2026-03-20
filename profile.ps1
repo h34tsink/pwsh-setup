@@ -55,12 +55,12 @@ if (Get-Module -ListAvailable -Name Terminal-Icons) {
 }
 
 # --- PSFzf (Fuzzy Finder) ---
-if (Get-Module -ListAvailable -Name PSFzf) {
+# PSFzf throws on import if fzf binary isn't in PATH (common in VS Code terminal)
+if ((Get-Module -ListAvailable -Name PSFzf) -and (Get-Command fzf -ErrorAction SilentlyContinue)) {
     Import-Module PSFzf
     Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
     Set-PSReadLineKeyHandler -Key Tab -ScriptBlock { Invoke-FzfTabCompletion }
 } else {
-    # Fallback to built-in menu completion when fzf is not available
     Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 }
 
