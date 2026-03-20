@@ -5,7 +5,9 @@
 if (Get-Command fastfetch -ErrorAction SilentlyContinue) { fastfetch }
 
 # --- Oh My Posh ---
-oh-my-posh init pwsh --config "$HOME\.poshthemes\custom-blue.omp.json" | Invoke-Expression
+if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
+    oh-my-posh init pwsh --config "$HOME\.poshthemes\custom-blue.omp.json" | Invoke-Expression
+}
 
 # --- PSReadLine (Predictive IntelliSense) ---
 Set-PSReadLineOption -PredictionSource HistoryAndPlugin
@@ -31,7 +33,6 @@ Set-PSReadLineOption -Colors @{
 # Key bindings
 Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
 Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
-Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
 Set-PSReadLineKeyHandler -Chord 'Ctrl+w' -Function BackwardDeleteWord
 Set-PSReadLineKeyHandler -Chord 'Alt+d' -Function DeleteWord
@@ -58,6 +59,9 @@ if (Get-Module -ListAvailable -Name PSFzf) {
     Import-Module PSFzf
     Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+t' -PSReadlineChordReverseHistory 'Ctrl+r'
     Set-PSReadLineKeyHandler -Key Tab -ScriptBlock { Invoke-FzfTabCompletion }
+} else {
+    # Fallback to built-in menu completion when fzf is not available
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 }
 
 # --- PSCompletions ---
@@ -66,8 +70,10 @@ if (Get-Module -ListAvailable -Name PSCompletions) {
 }
 
 # --- gsudo Module ---
-if (Test-Path "$HOME\scoop\modules\gsudoModule") {
+if (Get-Module -ListAvailable -Name gsudoModule) {
     Import-Module gsudoModule
+} elseif (Test-Path "$HOME\scoop\modules\gsudoModule") {
+    Import-Module "$HOME\scoop\modules\gsudoModule"
 }
 
 # --- Zoxide ---

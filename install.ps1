@@ -7,15 +7,18 @@
     Terminal-Icons, PSFzf, PSCompletions, zoxide, bat, eza, fd, ripgrep,
     delta, btop, gsudo, lazygit, and a custom blue/purple prompt theme.
 .NOTES
-    Run in PowerShell 7+: irm <raw-url>/install.ps1 | iex
+    Run in PowerShell 7+: irm https://raw.githubusercontent.com/h34tsink/pwsh-setup/main/install.ps1 | iex
     Or clone and run: ./install.ps1
 #>
 
 param(
     [switch]$SkipScoop,
+    [switch]$SkipOhMyPosh,
     [switch]$SkipModules,
     [switch]$SkipProfile,
-    [switch]$SkipTheme
+    [switch]$SkipTheme,
+    [switch]$SkipFastfetch,
+    [switch]$SkipDelta
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,8 +26,20 @@ $repoUrl = "https://raw.githubusercontent.com/h34tsink/pwsh-setup/main"
 $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { "" }
 
 function Write-Step { param($msg) Write-Host "`n>> $msg" -ForegroundColor Cyan }
-function Write-Ok { param($msg) Write-Host "   $msg" -ForegroundColor Green }
+function Write-Ok   { param($msg) Write-Host "   $msg" -ForegroundColor Green }
 function Write-Skip { param($msg) Write-Host "   SKIP: $msg" -ForegroundColor Yellow }
+function Write-Warn { param($msg) Write-Host "   WARN: $msg" -ForegroundColor DarkYellow }
+
+# Map scoop package names to their actual binary names where they differ
+$toolBinaryMap = @{
+    'ripgrep' = 'rg'
+}
+
+function Get-ToolCommand {
+    param([string]$tool)
+    if ($toolBinaryMap.ContainsKey($tool)) { return $toolBinaryMap[$tool] }
+    return $tool
+}
 
 # ── Scoop ──
 if (-not $SkipScoop) {
@@ -32,7 +47,6 @@ if (-not $SkipScoop) {
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
         Invoke-Expression "& {$(Invoke-RestMethod get.scoop.sh)} -RunAsAdmin"
-        # Refresh PATH
         $env:PATH = "$HOME\scoop\shims;$env:PATH"
         Write-Ok "Scoop installed"
     } else {
@@ -48,12 +62,14 @@ if (-not $SkipScoop) {
     Write-Step "Installing CLI tools via Scoop"
     $tools = @('bat', 'eza', 'fd', 'ripgrep', 'delta', 'btop', 'gsudo', 'lazygit', 'fzf', 'zoxide', 'gh', 'fastfetch')
     foreach ($tool in $tools) {
-        if (Get-Command $tool -ErrorAction SilentlyContinue) {
+        $cmd = Get-ToolCommand $tool
+        if (Get-Command $cmd -ErrorAction SilentlyContinue) {
             Write-Ok "$tool already installed"
         } else {
             Write-Host "   Installing $tool..." -ForegroundColor Gray
-            scoop install $tool 2>$null
-            Write-Ok "$tool installed"
+            scoop install $tool
+            if ($LASTEXITCODE -ne 0) { Write-Warn "$tool install may have failed (exit code $LASTEXITCODE)" }
+            else { Write-Ok "$tool installed" }
         }
     }
 } else {
@@ -61,12 +77,16 @@ if (-not $SkipScoop) {
 }
 
 # ── Oh My Posh ──
-Write-Step "Installing Oh My Posh"
-if (-not (Get-Command oh-my-posh -ErrorAction SilentlyContinue)) {
-    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))
-    Write-Ok "Oh My Posh installed"
+if (-not $SkipOhMyPosh) {
+    Write-Step "Installing Oh My Posh"
+    if (-not (Get-Command oh-my-posh -ErrorAction SilentlyContinue)) {
+        Invoke-Expression (Invoke-RestMethod 'https://ohmyposh.dev/install.ps1')
+        Write-Ok "Oh My Posh installed"
+    } else {
+        Write-Ok "Oh My Posh already installed ($(oh-my-posh --version))"
+    }
 } else {
-    Write-Ok "Oh My Posh already installed ($(oh-my-posh --version))"
+    Write-Skip "Oh My Posh"
 }
 
 # ── PowerShell Modules ──
@@ -104,19 +124,23 @@ if (-not $SkipTheme) {
 }
 
 # ── Fastfetch Config ──
-Write-Step "Installing fastfetch config"
-$ffDir = "$HOME\.config\fastfetch"
-if (-not (Test-Path $ffDir)) { New-Item -ItemType Directory -Path $ffDir -Force | Out-Null }
+if (-not $SkipFastfetch) {
+    Write-Step "Installing fastfetch config"
+    $ffDir = "$HOME\.config\fastfetch"
+    if (-not (Test-Path $ffDir)) { New-Item -ItemType Directory -Path $ffDir -Force | Out-Null }
 
-$ffConfigSource = if ($scriptDir) { Join-Path $scriptDir "fastfetch\config.jsonc" } else { "" }
-if ($ffConfigSource -and (Test-Path $ffConfigSource)) {
-    Copy-Item (Join-Path $scriptDir "fastfetch\config.jsonc") "$ffDir\config.jsonc" -Force
-    Copy-Item (Join-Path $scriptDir "fastfetch\logo.txt") "$ffDir\logo.txt" -Force
+    $ffConfigSource = if ($scriptDir) { Join-Path $scriptDir "fastfetch\config.jsonc" } else { "" }
+    if ($ffConfigSource -and (Test-Path $ffConfigSource)) {
+        Copy-Item (Join-Path $scriptDir "fastfetch\config.jsonc") "$ffDir\config.jsonc" -Force
+        Copy-Item (Join-Path $scriptDir "fastfetch\logo.txt") "$ffDir\logo.txt" -Force
+    } else {
+        Invoke-WebRequest -Uri "$repoUrl/fastfetch/config.jsonc" -OutFile "$ffDir\config.jsonc"
+        Invoke-WebRequest -Uri "$repoUrl/fastfetch/logo.txt" -OutFile "$ffDir\logo.txt"
+    }
+    Write-Ok "Fastfetch config installed to $ffDir"
 } else {
-    Invoke-WebRequest -Uri "$repoUrl/fastfetch/config.jsonc" -OutFile "$ffDir\config.jsonc"
-    Invoke-WebRequest -Uri "$repoUrl/fastfetch/logo.txt" -OutFile "$ffDir\logo.txt"
+    Write-Skip "Fastfetch config"
 }
-Write-Ok "Fastfetch config installed to $ffDir"
 
 # ── Profile ──
 if (-not $SkipProfile) {
@@ -143,27 +167,26 @@ if (-not $SkipProfile) {
 }
 
 # ── Git config for delta ──
-Write-Step "Configuring git to use delta"
-$deltaConfig = if ($scriptDir) { Join-Path $scriptDir ".gitconfig-delta" } else { "" }
-if (-not $deltaConfig -or -not (Test-Path $deltaConfig)) {
-    $deltaConfig = "$env:TEMP\.gitconfig-delta"
-    Invoke-WebRequest -Uri "$repoUrl/.gitconfig-delta" -OutFile $deltaConfig
-}
-if (Get-Command delta -ErrorAction SilentlyContinue) {
-    git config --global core.pager "delta"
-    git config --global interactive.diffFilter "delta --color-only"
-    git config --global delta.navigate true
-    git config --global delta.side-by-side true
-    git config --global delta.line-numbers true
-    git config --global delta.syntax-theme "Dracula"
-    git config --global merge.conflictstyle "diff3"
-    git config --global diff.colorMoved "default"
-    Write-Ok "Git configured to use delta"
+if (-not $SkipDelta) {
+    Write-Step "Configuring git to use delta"
+    if (Get-Command delta -ErrorAction SilentlyContinue) {
+        git config --global core.pager "delta"
+        git config --global interactive.diffFilter "delta --color-only"
+        git config --global delta.navigate true
+        git config --global delta.side-by-side true
+        git config --global delta.line-numbers true
+        git config --global delta.syntax-theme "Dracula"
+        git config --global merge.conflictstyle "diff3"
+        git config --global diff.colorMoved "default"
+        Write-Ok "Git configured to use delta"
+    } else {
+        Write-Skip "delta not found — install it first, then re-run without -SkipDelta"
+    }
 } else {
-    Write-Skip "delta not found"
+    Write-Skip "Git delta config"
 }
 
-# ── Nerd Font reminder ──
+# ── Summary ──
 Write-Host "`n" -NoNewline
 Write-Host "========================================" -ForegroundColor Magenta
 Write-Host "  Setup complete!" -ForegroundColor Green
