@@ -67,9 +67,19 @@ if (-not $SkipScoop) {
             Write-Ok "$tool already installed"
         } else {
             Write-Host "   Installing $tool..." -ForegroundColor Gray
-            scoop install $tool
-            if ($LASTEXITCODE -ne 0) { Write-Warn "$tool install may have failed (exit code $LASTEXITCODE)" }
-            else { Write-Ok "$tool installed" }
+            try {
+                # Temporarily relax error handling — scoop manifest scripts (pre/post_install)
+                # can throw non-fatal errors (e.g., btop's New-Item on existing config file)
+                $prevEAP = $ErrorActionPreference
+                $ErrorActionPreference = 'Continue'
+                scoop install $tool
+                $ErrorActionPreference = $prevEAP
+                if ($LASTEXITCODE -ne 0) { Write-Warn "$tool install may have failed (exit code $LASTEXITCODE)" }
+                else { Write-Ok "$tool installed" }
+            } catch {
+                $ErrorActionPreference = $prevEAP
+                Write-Warn "$tool install encountered an error: $_"
+            }
         }
     }
 } else {
