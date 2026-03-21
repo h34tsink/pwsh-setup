@@ -5,7 +5,7 @@
 .DESCRIPTION
     Installs and configures: Oh My Posh, PSReadLine (ListView predictions),
     Terminal-Icons, PSFzf, PSCompletions, zoxide, bat, eza, fd, ripgrep,
-    delta, btop, gsudo, lazygit, and a custom blue/purple prompt theme.
+    delta, btop, gsudo, lazygit, yazi, and a custom blue/purple prompt theme.
 .NOTES
     Run in PowerShell 7+: irm https://raw.githubusercontent.com/h34tsink/pwsh-setup/main/install.ps1 | iex
     Or clone and run: ./install.ps1
@@ -18,7 +18,8 @@ param(
     [switch]$SkipProfile,
     [switch]$SkipTheme,
     [switch]$SkipFastfetch,
-    [switch]$SkipDelta
+    [switch]$SkipDelta,
+    [switch]$SkipBtop
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,7 +33,9 @@ function Write-Warn { param($msg) Write-Host "   WARN: $msg" -ForegroundColor Da
 
 # Map scoop package names to their actual binary names where they differ
 $toolBinaryMap = @{
-    'ripgrep' = 'rg'
+    'ripgrep'     = 'rg'
+    'imagemagick' = 'magick'
+    'poppler'     = 'pdftoppm'
 }
 
 function Get-ToolCommand {
@@ -60,7 +63,8 @@ if (-not $SkipScoop) {
     Write-Ok "Buckets ready"
 
     Write-Step "Installing CLI tools via Scoop"
-    $tools = @('bat', 'eza', 'fd', 'ripgrep', 'delta', 'btop', 'gsudo', 'lazygit', 'fzf', 'zoxide', 'gh', 'fastfetch')
+    $tools = @('bat', 'eza', 'fd', 'ripgrep', 'delta', 'btop', 'gsudo', 'lazygit', 'fzf', 'zoxide', 'gh', 'fastfetch',
+                'yazi', 'file', 'unar', 'imagemagick', 'poppler', 'ffmpeg')
     foreach ($tool in $tools) {
         $cmd = Get-ToolCommand $tool
         if (Get-Command $cmd -ErrorAction SilentlyContinue) {
@@ -152,6 +156,23 @@ if (-not $SkipFastfetch) {
     Write-Skip "Fastfetch config"
 }
 
+# ── Btop Config ──
+if (-not $SkipBtop) {
+    Write-Step "Installing btop config"
+    $btopDir = "$env:APPDATA\btop"
+    if (-not (Test-Path $btopDir)) { New-Item -ItemType Directory -Path $btopDir -Force | Out-Null }
+
+    $btopSource = if ($scriptDir) { Join-Path $scriptDir "btop\btop.conf" } else { "" }
+    if ($btopSource -and (Test-Path $btopSource)) {
+        Copy-Item $btopSource "$btopDir\btop.conf" -Force
+    } else {
+        Invoke-WebRequest -Uri "$repoUrl/btop/btop.conf" -OutFile "$btopDir\btop.conf"
+    }
+    Write-Ok "Btop config installed to $btopDir\btop.conf"
+} else {
+    Write-Skip "Btop config"
+}
+
 # ── Profile ──
 if (-not $SkipProfile) {
     Write-Step "Installing PowerShell profile"
@@ -218,5 +239,6 @@ Write-Host "    lt      - eza tree view" -ForegroundColor White
 Write-Host "    cat     - bat with syntax highlighting" -ForegroundColor White
 Write-Host "    z <dir> - zoxide smart cd" -ForegroundColor White
 Write-Host "    sudo    - gsudo elevate" -ForegroundColor White
+Write-Host "    y       - yazi file manager (cds on exit)" -ForegroundColor White
 Write-Host "    fastfetch - system info on startup" -ForegroundColor White
 Write-Host ""

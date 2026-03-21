@@ -101,3 +101,12 @@ if (Get-Command fd -ErrorAction SilentlyContinue) {
 if (Get-Command lazygit -ErrorAction SilentlyContinue) {
     Set-Alias -Name lg -Value lazygit
 }
+if (Get-Command yazi -ErrorAction SilentlyContinue) {
+    function y {
+        $tmp = [System.IO.Path]::GetTempFileName()
+        yazi $args --cwd-file="$tmp"
+        $cwd = Get-Content $tmp -ErrorAction SilentlyContinue
+        if ($cwd -and $cwd -ne $PWD.Path) { Set-Location $cwd }
+        Remove-Item $tmp -ErrorAction SilentlyContinue
+    }
+}
