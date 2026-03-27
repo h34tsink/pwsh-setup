@@ -3,10 +3,10 @@
 .SYNOPSIS
     PowerShell Terminal Enhancement Suite - Setup Script
 .DESCRIPTION
-    Installs and configures: Oh My Posh, PSReadLine (ListView predictions),
-    Terminal-Icons, PSFzf, PSCompletions, zoxide, bat, eza, fd, ripgrep,
-    delta, btop, gsudo, lazygit, yazi, CaskaydiaCove Nerd Font Mono,
-    and a custom blue/purple prompt theme.
+    Installs and configures: Git (with Git Bash), Oh My Posh, PSReadLine
+    (ListView predictions), Terminal-Icons, PSFzf, PSCompletions, zoxide,
+    bat, eza, fd, ripgrep, delta, btop, gsudo, lazygit, yazi,
+    CaskaydiaCove Nerd Font Mono, and a custom blue/purple prompt theme.
 .NOTES
     Run in PowerShell 7+: irm https://raw.githubusercontent.com/h34tsink/pwsh-setup/main/install.ps1 | iex
     Or clone and run: ./install.ps1
@@ -76,7 +76,7 @@ if (-not $SkipScoop) {
     Write-Ok "Buckets ready"
 
     Write-Step "Installing CLI tools via Scoop"
-    $tools = @('bat', 'eza', 'fd', 'ripgrep', 'delta', 'btop', 'gsudo', 'lazygit', 'fzf', 'zoxide', 'gh', 'fastfetch',
+    $tools = @('git', 'bat', 'eza', 'fd', 'ripgrep', 'delta', 'btop', 'gsudo', 'lazygit', 'fzf', 'zoxide', 'gh', 'fastfetch',
                 'yazi', 'file', 'unar', 'imagemagick', 'poppler', 'ffmpeg')
     foreach ($tool in $tools) {
         $cmd = Get-ToolCommand $tool
