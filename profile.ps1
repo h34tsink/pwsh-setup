@@ -10,43 +10,48 @@ if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
 }
 
 # --- PSReadLine (Predictive IntelliSense) ---
-Set-PSReadLineOption -PredictionSource HistoryAndPlugin
-Set-PSReadLineOption -PredictionViewStyle ListView
-Set-PSReadLineOption -MaximumHistoryCount 10000
-Set-PSReadLineOption -BellStyle None
-Set-PSReadLineOption -Colors @{
-    Command            = '#87CEEB'
-    Parameter          = '#98FB98'
-    Operator           = '#FFB6C1'
-    Variable           = '#DDA0DD'
-    String             = '#FFDAB9'
-    Number             = '#B0E0E6'
-    Type               = '#F0E68C'
-    Comment            = '#D3D3D3'
-    Keyword            = '#b4befe'
-    Error              = '#FF6347'
-    InlinePrediction   = '#5a6a9f'
-    ListPrediction     = '#c4a7fa'
-    ListPredictionSelected = '#7b5cf5'
-}
+# Guard against non-interactive / redirected sessions (e.g. piped scripts, VS Code tasks)
+# where PSReadLine prediction and virtual-terminal features are unavailable.
+if ($Host.Name -eq 'ConsoleHost' -and [System.Environment]::UserInteractive -and
+    -not [Console]::IsOutputRedirected) {
+    Set-PSReadLineOption -PredictionSource HistoryAndPlugin
+    Set-PSReadLineOption -PredictionViewStyle ListView
+    Set-PSReadLineOption -MaximumHistoryCount 10000
+    Set-PSReadLineOption -BellStyle None
+    Set-PSReadLineOption -Colors @{
+        Command            = '#87CEEB'
+        Parameter          = '#98FB98'
+        Operator           = '#FFB6C1'
+        Variable           = '#DDA0DD'
+        String             = '#FFDAB9'
+        Number             = '#B0E0E6'
+        Type               = '#F0E68C'
+        Comment            = '#D3D3D3'
+        Keyword            = '#b4befe'
+        Error              = '#FF6347'
+        InlinePrediction   = '#5a6a9f'
+        ListPrediction     = '#c4a7fa'
+        ListPredictionSelected = '#7b5cf5'
+    }
 
-# Key bindings
-Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
-Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
-Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
-Set-PSReadLineKeyHandler -Chord 'Ctrl+w' -Function BackwardDeleteWord
-Set-PSReadLineKeyHandler -Chord 'Alt+d' -Function DeleteWord
-Set-PSReadLineKeyHandler -Chord 'Ctrl+LeftArrow' -Function BackwardWord
-Set-PSReadLineKeyHandler -Chord 'Ctrl+RightArrow' -Function ForwardWord
-Set-PSReadLineKeyHandler -Chord 'Ctrl+z' -Function Undo
-Set-PSReadLineKeyHandler -Chord 'Ctrl+y' -Function Redo
+    # Key bindings
+    Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
+    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+w' -Function BackwardDeleteWord
+    Set-PSReadLineKeyHandler -Chord 'Alt+d' -Function DeleteWord
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+LeftArrow' -Function BackwardWord
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+RightArrow' -Function ForwardWord
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+z' -Function Undo
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+y' -Function Redo
 
-# Don't save sensitive commands to history
-Set-PSReadLineOption -AddToHistoryHandler {
-    param($line)
-    $sensitive = @('password', 'secret', 'token', 'apikey', 'connectionstring')
-    $hasSensitive = $sensitive | Where-Object { $line -match $_ }
-    return ($null -eq $hasSensitive)
+    # Don't save sensitive commands to history
+    Set-PSReadLineOption -AddToHistoryHandler {
+        param($line)
+        $sensitive = @('password', 'secret', 'token', 'apikey', 'connectionstring')
+        $hasSensitive = $sensitive | Where-Object { $line -match $_ }
+        return ($null -eq $hasSensitive)
+    }
 }
 
 # --- Terminal-Icons ---

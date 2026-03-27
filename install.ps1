@@ -48,7 +48,12 @@ function Get-ToolCommand {
 if (-not $SkipScoop) {
     Write-Step "Installing Scoop package manager"
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        try {
+            Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force -ErrorAction Stop
+        } catch {
+            # Ignore: policy may already be set or overridden at a more specific scope (e.g. -ExecutionPolicy Bypass passed at launch)
+            Write-Warn "Set-ExecutionPolicy: $($_.Exception.Message.Split([System.Environment]::NewLine)[0])"
+        }
         Invoke-Expression "& {$(Invoke-RestMethod get.scoop.sh)} -RunAsAdmin"
         $env:PATH = "$HOME\scoop\shims;$env:PATH"
         Write-Ok "Scoop installed"
