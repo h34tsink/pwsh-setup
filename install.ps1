@@ -99,6 +99,13 @@ if (-not $SkipScoop) {
             }
         }
     }
+
+    # Refresh PATH so newly installed scoop shims (git, delta, etc.) are
+    # immediately available for the rest of this script without a new session.
+    $scoopShims = "$HOME\scoop\shims"
+    if ((Test-Path $scoopShims) -and ($env:PATH -notlike "*scoop\shims*")) {
+        $env:PATH = "$scoopShims;$env:PATH"
+    }
 } else {
     Write-Skip "Scoop and CLI tools"
 }
@@ -278,7 +285,9 @@ if (-not $SkipProfile) {
 # ── Git config for delta ──
 if (-not $SkipDelta) {
     Write-Step "Configuring git to use delta"
-    if (Get-Command delta -ErrorAction SilentlyContinue) {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Warn "git not found in PATH — skipping delta config. Re-run after git is installed."
+    } elseif (Get-Command delta -ErrorAction SilentlyContinue) {
         git config --global core.pager "delta"
         git config --global interactive.diffFilter "delta --color-only"
         git config --global delta.navigate true
