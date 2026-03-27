@@ -132,6 +132,38 @@ if (-not $SkipFonts) {
             Write-Warn "Font install encountered an error: $_"
         }
     }
+
+    # Configure Windows Terminal to use the font
+    # Use .NET to get the real LocalAppData path — $env:LOCALAPPDATA may be
+    # overridden in portable/redirected environments (e.g. D:\claude-auth).
+    $realLocalAppData = [System.Environment]::GetFolderPath('LocalApplicationData')
+    $wtSettings = "$realLocalAppData\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+    if (Test-Path $wtSettings) {
+        Write-Host "   Configuring Windows Terminal font..." -ForegroundColor Gray
+        try {
+            $json = Get-Content $wtSettings -Raw | ConvertFrom-Json
+            # Set font in defaults (applies to all profiles)
+            if (-not $json.profiles.defaults.font) {
+                $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name 'font' -Value ([PSCustomObject]@{ face = 'CaskaydiaCove NF Mono'; size = 11 }) -Force
+            } else {
+                $json.profiles.defaults.font.face = 'CaskaydiaCove NF Mono'
+            }
+            # Switch default profile to PowerShell 7 if it's present and default is still PS5
+            $ps7Guid = '{574e775e-4f2a-5b96-ac1e-a2962a402336}'
+            $ps5Guid = '{61c54bbd-c2c6-5271-96e7-009a87ff44bf}'
+            $ps7Profile = $json.profiles.list | Where-Object { $_.guid -eq $ps7Guid }
+            if ($ps7Profile -and $json.defaultProfile -eq $ps5Guid) {
+                $json.defaultProfile = $ps7Guid
+                Write-Ok "Default profile set to PowerShell 7"
+            }
+            $json | ConvertTo-Json -Depth 10 | Set-Content $wtSettings -Encoding UTF8
+            Write-Ok "Windows Terminal: font set to CaskaydiaCove NF Mono"
+        } catch {
+            Write-Warn "Could not update Windows Terminal settings: $_"
+        }
+    } else {
+        Write-Warn "Windows Terminal settings not found — set font manually to 'CaskaydiaCove NF Mono'"
+    }
 } else {
     Write-Skip "Fonts"
 }
