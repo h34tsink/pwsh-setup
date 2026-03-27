@@ -5,7 +5,8 @@
 .DESCRIPTION
     Installs and configures: Oh My Posh, PSReadLine (ListView predictions),
     Terminal-Icons, PSFzf, PSCompletions, zoxide, bat, eza, fd, ripgrep,
-    delta, btop, gsudo, lazygit, yazi, and a custom blue/purple prompt theme.
+    delta, btop, gsudo, lazygit, yazi, CaskaydiaCove Nerd Font Mono,
+    and a custom blue/purple prompt theme.
 .NOTES
     Run in PowerShell 7+: irm https://raw.githubusercontent.com/h34tsink/pwsh-setup/main/install.ps1 | iex
     Or clone and run: ./install.ps1
@@ -13,6 +14,7 @@
 
 param(
     [switch]$SkipScoop,
+    [switch]$SkipFonts,
     [switch]$SkipOhMyPosh,
     [switch]$SkipModules,
     [switch]$SkipProfile,
@@ -25,6 +27,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoUrl = "https://raw.githubusercontent.com/h34tsink/pwsh-setup/main"
 $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { "" }
+
+# Ensure scoop shims are in PATH regardless of whether -SkipScoop is used
+if ((Test-Path "$HOME\scoop\shims") -and ($env:PATH -notlike "*scoop\shims*")) {
+    $env:PATH = "$HOME\scoop\shims;$env:PATH"
+}
 
 function Write-Step { param($msg) Write-Host "`n>> $msg" -ForegroundColor Cyan }
 function Write-Ok   { param($msg) Write-Host "   $msg" -ForegroundColor Green }
@@ -63,8 +70,9 @@ if (-not $SkipScoop) {
 
     Write-Step "Adding Scoop buckets"
     $buckets = scoop bucket list | Select-Object -ExpandProperty Name
-    if ($buckets -notcontains 'extras') { scoop bucket add extras }
-    if ($buckets -notcontains 'main') { scoop bucket add main }
+    if ($buckets -notcontains 'extras')      { scoop bucket add extras }
+    if ($buckets -notcontains 'main')        { scoop bucket add main }
+    if ($buckets -notcontains 'nerd-fonts')  { scoop bucket add nerd-fonts }
     Write-Ok "Buckets ready"
 
     Write-Step "Installing CLI tools via Scoop"
@@ -93,6 +101,39 @@ if (-not $SkipScoop) {
     }
 } else {
     Write-Skip "Scoop and CLI tools"
+}
+
+# ── Fonts ──
+if (-not $SkipFonts) {
+    Write-Step "Installing CaskaydiaCove Nerd Font Mono (Cascadia Code)"
+    $fontName = 'CascadiaCode-NF-Mono'
+    $userFontsDir   = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    $systemFontsDir = "$env:windir\Fonts"
+    $installed = (Test-Path "$userFontsDir\CascadiaCodeNFM*") -or
+                 (Test-Path "$systemFontsDir\CascadiaCodeNFM*")
+    if ($installed) {
+        Write-Ok "CascadiaCode Nerd Font Mono already installed"
+    } else {
+        # Ensure nerd-fonts bucket exists even if -SkipScoop was passed
+        $buckets = scoop bucket list | Select-Object -ExpandProperty Name
+        if ($buckets -notcontains 'nerd-fonts') {
+            Write-Host "   Adding nerd-fonts bucket..." -ForegroundColor Gray
+            scoop bucket add nerd-fonts
+        }
+        try {
+            $prevEAP = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            scoop install $fontName
+            $ErrorActionPreference = $prevEAP
+            if ($LASTEXITCODE -ne 0) { Write-Warn "Font install may have failed (exit $LASTEXITCODE)" }
+            else { Write-Ok "CascadiaCode Nerd Font Mono installed" }
+        } catch {
+            $ErrorActionPreference = $prevEAP
+            Write-Warn "Font install encountered an error: $_"
+        }
+    }
+} else {
+    Write-Skip "Fonts"
 }
 
 # ── Oh My Posh ──
@@ -228,9 +269,8 @@ Write-Host "========================================" -ForegroundColor Magenta
 Write-Host "  Setup complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Magenta
 Write-Host ""
-Write-Host "  Make sure you have a Nerd Font installed:" -ForegroundColor Yellow
-Write-Host "  https://www.nerdfonts.com/font-downloads" -ForegroundColor Gray
-Write-Host "  Recommended: FiraCode Nerd Font or JetBrainsMono Nerd Font" -ForegroundColor Gray
+Write-Host "  CaskaydiaCove Nerd Font Mono was installed automatically." -ForegroundColor Green
+Write-Host "  Set it as your terminal font to enable prompt glyphs." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Restart your terminal to see changes." -ForegroundColor Yellow
 Write-Host ""
