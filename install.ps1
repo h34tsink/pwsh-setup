@@ -151,28 +151,29 @@ if (-not $SkipFonts) {
             $json = Get-Content $wtSettings -Raw | ConvertFrom-Json
 
             # ── xcad color scheme (black bg, navy/purple/magenta palette) ──
+            # xcad: Campbell structure, all ANSI slots shifted to blues/purples
             $xcad = [PSCustomObject]@{
                 name                = 'xcad'
-                background          = '#0c0c1e'
-                foreground          = '#ccc0e8'
-                cursorColor         = '#c030b0'
-                selectionBackground = '#3a2a7a'
-                black               = '#0c0c1e'
-                brightBlack         = '#2a2a5a'
-                red                 = '#c04070'
-                brightRed           = '#e06090'
-                green               = '#20a878'
-                brightGreen         = '#30d898'
-                yellow              = '#a080c0'
-                brightYellow        = '#c0a8e0'
-                blue                = '#2050b8'
-                brightBlue          = '#4088e8'
-                purple              = '#7030a0'
-                brightPurple        = '#c030b0'
-                cyan                = '#20a8c0'
-                brightCyan          = '#30d0e8'
-                white               = '#b0a8d0'
-                brightWhite         = '#e8e0f8'
+                background          = '#0C0C0C'
+                foreground          = '#CCCCCC'
+                cursorColor         = '#C040E0'
+                selectionBackground = '#3030A0'
+                black               = '#0C0C0C'
+                brightBlack         = '#767676'
+                red                 = '#4040C0'
+                brightRed           = '#6068E8'
+                green               = '#0080A8'
+                brightGreen         = '#00B8D4'
+                yellow              = '#6050A8'
+                brightYellow        = '#A890D8'
+                blue                = '#0050D8'
+                brightBlue          = '#4090FF'
+                purple              = '#8020B0'
+                brightPurple        = '#C040E0'
+                cyan                = '#0090C8'
+                brightCyan          = '#40C8F0'
+                white               = '#CCCCCC'
+                brightWhite         = '#F2F2F2'
             }
             $existingScheme = $json.schemes | Where-Object { $_.name -eq 'xcad' }
             if ($existingScheme) {
@@ -184,7 +185,7 @@ if (-not $SkipFonts) {
 
             # Set font + colorScheme in defaults (applies to all profiles)
             if (-not $json.profiles.defaults.font) {
-                $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name 'font' -Value ([PSCustomObject]@{ face = 'CaskaydiaCove NF Mono'; size = 11 }) -Force
+                $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name 'font' -Value ([PSCustomObject]@{ face = 'CaskaydiaCove NF Mono'; size = 13 }) -Force
             } else {
                 $json.profiles.defaults.font.face = 'CaskaydiaCove NF Mono'
             }
