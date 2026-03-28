@@ -146,15 +146,54 @@ if (-not $SkipFonts) {
     $realLocalAppData = [System.Environment]::GetFolderPath('LocalApplicationData')
     $wtSettings = "$realLocalAppData\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
     if (Test-Path $wtSettings) {
-        Write-Host "   Configuring Windows Terminal font..." -ForegroundColor Gray
+        Write-Host "   Configuring Windows Terminal..." -ForegroundColor Gray
         try {
             $json = Get-Content $wtSettings -Raw | ConvertFrom-Json
-            # Set font in defaults (applies to all profiles)
+
+            # ── xcad color scheme (black bg, navy/purple/magenta palette) ──
+            $xcad = [PSCustomObject]@{
+                name                = 'xcad'
+                background          = '#0c0c1e'
+                foreground          = '#ccc0e8'
+                cursorColor         = '#c030b0'
+                selectionBackground = '#3a2a7a'
+                black               = '#0c0c1e'
+                brightBlack         = '#2a2a5a'
+                red                 = '#c04070'
+                brightRed           = '#e06090'
+                green               = '#20a878'
+                brightGreen         = '#30d898'
+                yellow              = '#a080c0'
+                brightYellow        = '#c0a8e0'
+                blue                = '#2050b8'
+                brightBlue          = '#4088e8'
+                purple              = '#7030a0'
+                brightPurple        = '#c030b0'
+                cyan                = '#20a8c0'
+                brightCyan          = '#30d0e8'
+                white               = '#b0a8d0'
+                brightWhite         = '#e8e0f8'
+            }
+            $existingScheme = $json.schemes | Where-Object { $_.name -eq 'xcad' }
+            if ($existingScheme) {
+                # Update in place
+                $json.schemes = @($json.schemes | Where-Object { $_.name -ne 'xcad' }) + $xcad
+            } else {
+                $json.schemes = @($json.schemes) + $xcad
+            }
+
+            # Set font + colorScheme in defaults (applies to all profiles)
             if (-not $json.profiles.defaults.font) {
                 $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name 'font' -Value ([PSCustomObject]@{ face = 'CaskaydiaCove NF Mono'; size = 11 }) -Force
             } else {
                 $json.profiles.defaults.font.face = 'CaskaydiaCove NF Mono'
             }
+            if (-not $json.profiles.defaults.colorScheme) {
+                $json.profiles.defaults | Add-Member -MemberType NoteProperty -Name 'colorScheme' -Value 'xcad' -Force
+            } else {
+                $json.profiles.defaults.colorScheme = 'xcad'
+            }
+
             # Switch default profile to PowerShell 7 if it's present and default is still PS5
             $ps7Guid = '{574e775e-4f2a-5b96-ac1e-a2962a402336}'
             $ps5Guid = '{61c54bbd-c2c6-5271-96e7-009a87ff44bf}'
@@ -163,13 +202,14 @@ if (-not $SkipFonts) {
                 $json.defaultProfile = $ps7Guid
                 Write-Ok "Default profile set to PowerShell 7"
             }
+
             $json | ConvertTo-Json -Depth 10 | Set-Content $wtSettings -Encoding UTF8
-            Write-Ok "Windows Terminal: font set to CaskaydiaCove NF Mono"
+            Write-Ok "Windows Terminal: xcad scheme applied, font set to CaskaydiaCove NF Mono"
         } catch {
             Write-Warn "Could not update Windows Terminal settings: $_"
         }
     } else {
-        Write-Warn "Windows Terminal settings not found — set font manually to 'CaskaydiaCove NF Mono'"
+        Write-Warn "Windows Terminal settings not found — configure font and color scheme manually"
     }
 } else {
     Write-Skip "Fonts"
