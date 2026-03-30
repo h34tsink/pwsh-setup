@@ -17,6 +17,7 @@ A PowerShell 7+ terminal enhancement suite. `install.ps1` is the single entry po
 5. **Fastfetch** (`-SkipFastfetch`) — Copies `fastfetch/config.jsonc` and `fastfetch/logo.txt` to `~\.config\fastfetch\`
 6. **Profile** (`-SkipProfile`) — Backs up existing `$PROFILE`, copies `profile.ps1` into place
 7. **Git delta** (`-SkipDelta`) — Configures git globally to use delta as pager
+8. **SSH** (`-SkipSSH`) — Enables ssh-agent service, generates Ed25519 key, configures git to use Windows OpenSSH
 
 Each step is idempotent — checks for existing installs before acting.
 

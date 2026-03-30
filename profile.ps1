@@ -86,6 +86,13 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { (zoxide init --cmd z powershell | Out-String) })
 }
 
+# --- SSH Agent ---
+# Ensure ssh-agent service is running so keys are available for git/ssh
+$sshAgentSvc = Get-Service ssh-agent -ErrorAction SilentlyContinue
+if ($sshAgentSvc -and $sshAgentSvc.Status -ne 'Running') {
+    Start-Service ssh-agent -ErrorAction SilentlyContinue
+}
+
 # --- Delta (git pager) ---
 if (Get-Command delta -ErrorAction SilentlyContinue) {
     $env:GIT_PAGER = 'delta'

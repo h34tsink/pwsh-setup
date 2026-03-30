@@ -21,7 +21,8 @@ param(
     [switch]$SkipTheme,
     [switch]$SkipFastfetch,
     [switch]$SkipDelta,
-    [switch]$SkipBtop
+    [switch]$SkipBtop,
+    [switch]$SkipSSH
 )
 
 $ErrorActionPreference = 'Stop'
@@ -345,6 +346,84 @@ if (-not $SkipDelta) {
     Write-Skip "Git delta config"
 }
 
+# ── SSH ──
+if (-not $SkipSSH) {
+    Write-Step "Configuring SSH"
+
+    # Ensure ssh.exe is available (Windows 10+ ships OpenSSH client)
+    $sshCmd = Get-Command ssh.exe -ErrorAction SilentlyContinue
+    if (-not $sshCmd) {
+        Write-Warn "ssh.exe not found — install OpenSSH client via Windows Settings > Optional Features"
+    } else {
+        # Start ssh-agent service (requires elevation for first-time setup)
+        $agentSvc = Get-Service ssh-agent -ErrorAction SilentlyContinue
+        if ($agentSvc) {
+            if ($agentSvc.StartType -eq 'Disabled') {
+                Write-Host "   Enabling ssh-agent service (requires elevation)..." -ForegroundColor Gray
+                if (Get-Command gsudo -ErrorAction SilentlyContinue) {
+                    gsudo Set-Service ssh-agent -StartupType Automatic
+                } else {
+                    try {
+                        Start-Process powershell -Verb RunAs -Wait -ArgumentList '-Command', 'Set-Service ssh-agent -StartupType Automatic'
+                    } catch {
+                        Write-Warn "Could not enable ssh-agent service — run as admin: Set-Service ssh-agent -StartupType Automatic"
+                    }
+                }
+            }
+            if ((Get-Service ssh-agent).Status -ne 'Running') {
+                Start-Service ssh-agent -ErrorAction SilentlyContinue
+            }
+            if ((Get-Service ssh-agent).Status -eq 'Running') {
+                Write-Ok "ssh-agent service running"
+            } else {
+                Write-Warn "ssh-agent service could not be started"
+            }
+        } else {
+            Write-Warn "ssh-agent service not found — OpenSSH may not be fully installed"
+        }
+
+        # Generate Ed25519 key if none exists
+        $sshDir = "$HOME\.ssh"
+        $keyPath = "$sshDir\id_ed25519"
+        if (-not (Test-Path $keyPath)) {
+            Write-Host "   Generating Ed25519 SSH key..." -ForegroundColor Gray
+            if (-not (Test-Path $sshDir)) { New-Item -ItemType Directory -Path $sshDir -Force | Out-Null }
+            ssh-keygen -t ed25519 -f $keyPath -N '""' -C "$env:USERNAME@$env:COMPUTERNAME"
+            Write-Ok "SSH key generated at $keyPath"
+        } else {
+            Write-Ok "SSH key already exists at $keyPath"
+        }
+
+        # Add key to agent
+        $agentKeys = ssh-add -l 2>&1
+        if ($agentKeys -notmatch 'id_ed25519') {
+            ssh-add $keyPath 2>$null
+            Write-Ok "Key added to ssh-agent"
+        } else {
+            Write-Ok "Key already in ssh-agent"
+        }
+
+        # Configure git to use Windows OpenSSH (avoids bundled git SSH conflicts)
+        if (Get-Command git -ErrorAction SilentlyContinue) {
+            $sshExePath = $sshCmd.Source -replace '\\', '/'
+            git config --global core.sshCommand "$sshExePath"
+            Write-Ok "Git configured to use $($sshCmd.Source)"
+        }
+
+        # Display public key
+        $pubKey = "$keyPath.pub"
+        if (Test-Path $pubKey) {
+            Write-Host ""
+            Write-Host "   Your public SSH key (add to GitHub → Settings → SSH keys):" -ForegroundColor Cyan
+            Write-Host ""
+            Write-Host "   $(Get-Content $pubKey)" -ForegroundColor White
+            Write-Host ""
+        }
+    }
+} else {
+    Write-Skip "SSH setup"
+}
+
 # ── Summary ──
 Write-Host "`n" -NoNewline
 Write-Host "========================================" -ForegroundColor Magenta
@@ -368,4 +447,5 @@ Write-Host "    z <dir> - zoxide smart cd" -ForegroundColor White
 Write-Host "    sudo    - gsudo elevate" -ForegroundColor White
 Write-Host "    y       - yazi file manager (cds on exit)" -ForegroundColor White
 Write-Host "    fastfetch - system info on startup" -ForegroundColor White
+Write-Host "    ssh-agent - auto-starts, keys loaded" -ForegroundColor White
 Write-Host ""
