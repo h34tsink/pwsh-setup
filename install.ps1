@@ -21,7 +21,8 @@ param(
     [switch]$SkipTheme,
     [switch]$SkipFastfetch,
     [switch]$SkipDelta,
-    [switch]$SkipBtop
+    [switch]$SkipBtop,
+    [switch]$SkipObsidian
 )
 
 $ErrorActionPreference = 'Stop'
@@ -345,6 +346,38 @@ if (-not $SkipDelta) {
     Write-Skip "Git delta config"
 }
 
+# ── Obsidian ──
+if (-not $SkipObsidian) {
+    Write-Step "Installing Obsidian"
+    if (Get-Command obsidian -ErrorAction SilentlyContinue) {
+        Write-Ok "Obsidian already installed"
+    } else {
+        # Ensure extras bucket exists even if -SkipScoop was passed
+        if (Get-Command scoop -ErrorAction SilentlyContinue) {
+            $buckets = scoop bucket list | Select-Object -ExpandProperty Name
+            if ($buckets -notcontains 'extras') {
+                Write-Host "   Adding extras bucket..." -ForegroundColor Gray
+                scoop bucket add extras
+            }
+            try {
+                $prevEAP = $ErrorActionPreference
+                $ErrorActionPreference = 'Continue'
+                scoop install obsidian
+                $ErrorActionPreference = $prevEAP
+                if ($LASTEXITCODE -ne 0) { Write-Warn "Obsidian install may have failed (exit $LASTEXITCODE)" }
+                else { Write-Ok "Obsidian installed" }
+            } catch {
+                $ErrorActionPreference = $prevEAP
+                Write-Warn "Obsidian install encountered an error: $_"
+            }
+        } else {
+            Write-Warn "Scoop not found — cannot install Obsidian. Install Scoop first or run without -SkipScoop."
+        }
+    }
+} else {
+    Write-Skip "Obsidian"
+}
+
 # ── Summary ──
 Write-Host "`n" -NoNewline
 Write-Host "========================================" -ForegroundColor Magenta
@@ -368,4 +401,5 @@ Write-Host "    z <dir> - zoxide smart cd" -ForegroundColor White
 Write-Host "    sudo    - gsudo elevate" -ForegroundColor White
 Write-Host "    y       - yazi file manager (cds on exit)" -ForegroundColor White
 Write-Host "    fastfetch - system info on startup" -ForegroundColor White
+Write-Host "    obsidian  - note-taking app" -ForegroundColor White
 Write-Host ""
